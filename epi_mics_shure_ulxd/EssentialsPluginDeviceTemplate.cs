@@ -5,7 +5,7 @@ using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Bridges;
 using PepperDash.Core;
 
-namespace EssentialsPluginTemplateEPI 
+namespace epi_mics_shure_ulxd 
 {
 	public class EssentialsPluginDeviceTemplate : EssentialsBridgeableDevice
 	{

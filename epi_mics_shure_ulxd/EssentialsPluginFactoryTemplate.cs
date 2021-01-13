@@ -9,7 +9,7 @@ using PepperDash.Essentials.Core;
 
 using Newtonsoft.Json;
 
-namespace EssentialsPluginTemplateEPI
+namespace epi_mics_shure_ulxd
 {
     public class EssentialsPluginFactoryTemplate : EssentialsPluginDeviceFactory<EssentialsPluginDeviceTemplate>
     {

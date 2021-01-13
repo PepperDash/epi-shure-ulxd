@@ -1,6 +1,6 @@
 ﻿using PepperDash.Essentials.Core;
 
-namespace EssentialsPluginTemplateEPI
+namespace epi_mics_shure_ulxd
 {
 	public class EssentialsPluginBridgeJoinMapTemplate : JoinMapBaseAdvanced
 	{
