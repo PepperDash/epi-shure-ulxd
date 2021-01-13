@@ -35,7 +35,7 @@ namespace epi_mics_shure_ulxd
 
             var commReceiver = CommFactory.CreateCommForDevice(dc);
 
-            var chargerKey = String.Format("{0}--{1}", dc.Key, "ChargerBase");
+            var chargerKey = String.Format("{0}-{1}", dc.Key, "ChargerBase");
 
             var chargerSocket = new GenericTcpIpClient(chargerKey + "-tcp", c.Address, c.Port, c.BufferSize)
             {

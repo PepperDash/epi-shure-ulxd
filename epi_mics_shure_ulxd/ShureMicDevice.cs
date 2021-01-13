@@ -46,8 +46,6 @@ namespace epi_mics_shure_ulxd
         private Dictionary<int, MuteStatus> _micMuted;
         private Dictionary<int, ChargeStatus> _micCharging;
 
-        public CTimer Poll;
-
         private string _error;
 
         public string Error
@@ -86,8 +84,6 @@ namespace epi_mics_shure_ulxd
         {
             get { return ReceiverFirmware + " , " + ChargerFirmware; }
         }
-
-
 
         int CautionThreshold
         {
@@ -278,130 +274,122 @@ namespace epi_mics_shure_ulxd
             {
                 var data = e.Text;
 
-                if (data.IndexOf("REP", StringComparison.OrdinalIgnoreCase) > -1)
+                if (!data.Contains("REP") || data.Contains("ERR"))
                 {
-                    var dataChunks = data.Split(' ');
-
-                    if (data.IndexOf("FW_VER", StringComparison.OrdinalIgnoreCase) > -1)
-                    {
-                        var firmware = dataChunks[3];
-
-                        ReceiverFirmware = firmware.TrimStart('{').TrimEnd('}');
-
-                        StartReceiverPollRing();
-                    }
-
-
-
-                    var attribute = dataChunks[3];
-                    var index = int.Parse(dataChunks[2]);
-
-                    if (attribute.IndexOf("AUDIO_MUTE", StringComparison.OrdinalIgnoreCase) > -1)
-                    {
-                        var status = (MuteStatus) Enum.Parse(typeof (MuteStatus), dataChunks[4], true);
-                        _micMuted[index] = status;
-                        if (_micCharging[index] == ChargeStatus.NO)
-                        {
-                            switch (status)
-                            {
-                                case (MuteStatus.OFF):
-                                    MicStatus[index] = (int) (Tx_Status.ACTIVE);
-                                    break;
-                                case (MuteStatus.ON):
-                                    MicStatus[index] = (int) (Tx_Status.MUTE);
-                                    break;
-                            }
-                        }
-
-                        MicNamesFeedback[index].FireUpdate();
-                    }
-
-                    if (attribute.IndexOf("BATT_CHARGE", StringComparison.OrdinalIgnoreCase) > -1)
-                    {
-                        if (int.Parse(dataChunks[4]) != 255)
-                        {
-                            var battCharge = ushort.Parse(dataChunks[4]);
-                            MicBatteryLevel[index] = battCharge;
-
-                        }
-                        MicBatteryLevel[index] = 255;
-                        MicStatus[index] = (int)Tx_Status.UNKNOWN;
-
-                        MicBatteryLevelFeedback[index].FireUpdate();
-
-                        UpdateAlert(index);
-                        MicNamesFeedback[index].FireUpdate();
-
-
-                    }
-                    CheckStatusConditions();
-
+                    return;
                 }
 
-                foreach (var item in _props.Mics)
+                var dataChunks = data.Split(' ');
+
+                if (data.Contains("FW_VER"))
                 {
-                    var i = item;
-                    MicNamesFeedback[i.Index].FireUpdate();
-                    MicEnableFeedback[i.Index].FireUpdate();
+                    var firmware = dataChunks[3];
+
+                    ReceiverFirmware = firmware.TrimStart('{').TrimEnd('}');
+
+                    Debug.Console(1, this, "Receiver Firmware: {0}", ReceiverFirmware);
+
+                    return;
                 }
+
+                var attribute = dataChunks[3];
+                    
+                var index = int.Parse(dataChunks[2]);
+
+                if (attribute.Contains("AUDIO_MUTE"))
+                {
+                    var status = (MuteStatus) Enum.Parse(typeof (MuteStatus), dataChunks[4], true);
+                    _micMuted[index] = status;
+
+                    if (_micCharging[index] != ChargeStatus.NO)
+                    {
+                        return;
+                    }
+                    switch (status)
+                    {
+                        case (MuteStatus.OFF):
+                            MicStatus[index] = (int) (Tx_Status.ACTIVE);
+                            break;
+                        case (MuteStatus.ON):
+                            MicStatus[index] = (int) (Tx_Status.MUTE);
+                            break;
+                    }
+
+                    return;
+                }
+
+                if (attribute.Contains("BATT_CHARGE"))
+                {
+                    var battCharge = ushort.Parse(dataChunks[4]);
+
+                    MicBatteryLevel[index] = battCharge;
+
+                    if(battCharge == 255){
+                        MicStatus[index] = (int) Tx_Status.UNKNOWN;
+                        MicStatusFeedback[index].FireUpdate();
+                    }
+
+                    MicBatteryLevelFeedback[index].FireUpdate();
+
+                    UpdateAlert(index);
+
+                    return;
+                }
+                CheckStatusConditions();
             }
             catch (Exception ex)
             {
-                Debug.Console(1, this, Debug.ErrorLogLevel.Error, "Exception: {0}\r\nStack Trace: {1}", ex.Message,
-                    ex.StackTrace);
-
+                Debug.Console(1, this, "PortGatherReceiver Exception: {0}", ex.Message);
+                Debug.Console(2, this, "PortGatherReceiver Stack Trace: {0}", ex.StackTrace);
             }
         }
 
         void PortGatherCharger_LineReceived(object sender, GenericCommMethodReceiveTextArgs e)
         {
-            Debug.Console(2, this, "Charger RX: '{0}'", e.Text);
             try
             {
                 var data = e.Text;
 
-                if (data.IndexOf("REP", StringComparison.OrdinalIgnoreCase) > -1)
+                if (!data.Contains("REP") || data.Contains("ERR"))
                 {
-                    var dataChunks = data.Split(' ');
-
-                    if (data.IndexOf("FW_VER", StringComparison.OrdinalIgnoreCase) > -1)
-                    {
-                        var firmware = dataChunks[3];
-
-                        ReceiverFirmware = firmware.TrimStart('{').TrimEnd('}');
-
-                        StartChargerPollRing();
-                        return;
-                    }
-
-                    var index = int.Parse(dataChunks[2]);
-                    var attribute = dataChunks[3];
-                    if (attribute.IndexOf("TX_AVAILABLE", StringComparison.OrdinalIgnoreCase) > -1)
-                    {
-                    
-                        var status = (ChargeStatus) Enum.Parse(typeof (ChargeStatus), dataChunks[4], true);
-                        _micCharging[index] = status;
-                        MicNamesFeedback[index].FireUpdate();
-                        if (status == ChargeStatus.YES) MicStatus[index] = (int)Tx_Status.ON_CHARGER;
-                        MicOnCharger[index] = MicStatus[index] == (int) Tx_Status.ON_CHARGER;
-                        MicOnChargerFeedback[index].FireUpdate();
-
-                        UpdateAlert(index);
-                    }
-                    CheckStatusConditions();
-
-
+                    return;
                 }
+
+                var dataChunks = data.Split(' ');
+
+                if (data.Contains("FW_VER"))
+                {
+                    var firmware = dataChunks[3];
+
+                    ReceiverFirmware = firmware.TrimStart('{').TrimEnd('}');
+
+                    return;
+                }
+
+                var index = int.Parse(dataChunks[2]);
+                var attribute = dataChunks[3];
+
+                if (attribute.Contains("TX_AVAILABLE"))
+                {
+                    
+                    var status = (ChargeStatus) Enum.Parse(typeof (ChargeStatus), dataChunks[4], true);
+                    _micCharging[index] = status;
+
+                    if (status == ChargeStatus.YES) MicStatus[index] = (int)Tx_Status.ON_CHARGER;
+                    MicOnCharger[index] = MicStatus[index] == (int) Tx_Status.ON_CHARGER;
+                    MicOnChargerFeedback[index].FireUpdate();
+
+                    UpdateAlert(index);
+                }
+
+                CheckStatusConditions();
             }
 
             catch (Exception ex)
             {
-                Debug.Console(1, this, Debug.ErrorLogLevel.Error, "Exception: {0}\r\nStack Trace: {1}", ex.Message,
-                    ex.StackTrace);
+                Debug.Console(1, this, "PortGatherCharger Exception: {0}", ex.Message);
+                Debug.Console(2, this, "PortGatherCharger Stack Trace: {0}", ex.StackTrace);
             }
-
-
-
         }
 
         private void UpdateAlert(int data)
@@ -493,24 +481,6 @@ namespace epi_mics_shure_ulxd
             }
         }
 
-
-        private void StartReceiverPollRing()
-        {
-            for (var i = 0; i < MicStatus.Count; i++)
-            {
-                CommunicationReceiver.SendText(String.Format("< GET {0} BATT_CHARGE >", i + 1));
-                CommunicationReceiver.SendText(String.Format("< GET {0} AUDIO_MUTE >", i + 1));
-            }
-        }
-
-        private void StartChargerPollRing()
-        {
-            for (var i = 0; i < MicStatus.Count; i++)
-            {
-                CommunicationCharger.SendText(String.Format("< GET {0} TX_AVAILABLE >", i + 1));
-            }
-        }
-
         internal void socketCharger_ConnectionChange(object sender, GenericSocketStatusChageEventArgs e)
         {
             OnlineFeedback.FireUpdate();
@@ -552,12 +522,6 @@ namespace epi_mics_shure_ulxd
                 MicLowBatteryCautionFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.LowBatteryCaution.JoinNumber + offset]);
                 MicOnChargerFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.OnCharger.JoinNumber + offset]);
                 MicLowBatteryWarningFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.LowBatteryWarning.JoinNumber + offset]);
-
-
-
-
-
-
             }
 
             trilist.OnlineStatusChange += (d, args) =>
@@ -579,12 +543,22 @@ namespace epi_mics_shure_ulxd
         private void DoChargerPoll()
         {
             CommunicationCharger.SendText("< GET FW_VER >");
+
+            for (var i = 0; i < MicStatus.Count; i++)
+            {
+                CommunicationCharger.SendText(String.Format("< GET {0} TX_AVAILABLE >", i + 1));
+            }
         }
 
         private void DoReceiverPoll()
         {
             CommunicationReceiver.SendText("< GET FW_VER >");
 
+            for (var i = 0; i < MicStatus.Count; i++)
+            {
+                CommunicationReceiver.SendText(String.Format("< GET {0} BATT_CHARGE >", i + 1));
+                CommunicationReceiver.SendText(String.Format("< GET {0} AUDIO_MUTE >", i + 1));
+            }
         }
 
         enum Tx_Status
