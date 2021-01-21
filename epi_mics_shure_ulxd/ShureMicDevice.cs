@@ -184,10 +184,10 @@ namespace epi_mics_shure_ulxd
            
 
 
-            CommunicationMonitorCharger = new GenericCommunicationMonitor(this, CommunicationCharger, 1500, 180000, 300000, DoChargerPoll);
+            CommunicationMonitorCharger = new GenericCommunicationMonitor(this, CommunicationCharger, 30000, 180000, 300000, DoChargerPoll);
            
 
-            CommunicationMonitorReceiver = new GenericCommunicationMonitor(this, CommunicationReceiver, 1500, 180000, 300000, DoReceiverPoll);
+            CommunicationMonitorReceiver = new GenericCommunicationMonitor(this, CommunicationReceiver, 30000, 180000, 300000, DoReceiverPoll);
           
 
 
