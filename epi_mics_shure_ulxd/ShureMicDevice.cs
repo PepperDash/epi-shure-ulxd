@@ -255,6 +255,7 @@ namespace epi_mics_shure_ulxd
 
                 MicEnable.Add(i.Index, i.Enabled);
                 MicEnableFeedback.Add(i.Index, new BoolFeedback(() => MicEnable[i.Index]));
+
             }
 
             CommunicationCharger.Connect();
@@ -293,53 +294,71 @@ namespace epi_mics_shure_ulxd
                 }
 
                 var attribute = dataChunks[3];
-                    
                 var index = int.Parse(dataChunks[2]);
 
-                if (attribute.Contains("AUDIO_MUTE"))
-                {
-                    var status = (MuteStatus) Enum.Parse(typeof (MuteStatus), dataChunks[4], true);
-                    _micMuted[index] = status;
+				if (attribute.Contains("AUDIO_MUTE"))
+				{
+					var status = (MuteStatus)Enum.Parse(typeof(MuteStatus), dataChunks[4], true);
 
-                    if (_micCharging[index] != ChargeStatus.NO)
-                    {
-                        return;
-                    }
-                    switch (status)
-                    {
-                        case (MuteStatus.OFF):
-                            MicStatus[index] = (int) (Tx_Status.ACTIVE);
-                            break;
-                        case (MuteStatus.ON):
-                            MicStatus[index] = (int) (Tx_Status.MUTE);
-                            break;
-                    }
+					if (MicEnable[index])	//2021-01-22 ERD: This doesnt seem to ignore the Mics changed to 'Enable: False' in config which is the intent
+					{
+						_micMuted[index] = status;
+						
+						ChargeStatus tMicCharge;
+						if (_micCharging.TryGetValue(index, out tMicCharge))
+						{
+							Debug.Console(1, this, "_micCharging[{0}]: {1}", index, tMicCharge);
+						}
+						else
+						{
+							tMicCharge = 0;
+						}
+						if (tMicCharge != ChargeStatus.NO)
+						{
+							return;
+						}
 
-                    return;
-                }
+						switch (status)
+						{
+							case (MuteStatus.OFF):
+								MicStatus[index] = (int)(Tx_Status.ACTIVE);
+								break;
+							case (MuteStatus.ON):
+								MicStatus[index] = (int)(Tx_Status.MUTE);
+								break;
+							default:
+								break;
+						}
+						return;
+					}
+				}
 
                 if (attribute.Contains("BATT_CHARGE"))
                 {
                     var battCharge = ushort.Parse(dataChunks[4]);
 
-                    MicBatteryLevel[index] = battCharge;
+					if (MicEnable[index])
+					{
+						MicBatteryLevel[index] = battCharge;
 
-                    if(battCharge == 255){
-                        MicStatus[index] = (int) Tx_Status.UNKNOWN;
-                        MicStatusFeedback[index].FireUpdate();
-                    }
+						if (battCharge == 255)
+						{
+							MicStatus[index] = (int)Tx_Status.UNKNOWN;
+							MicStatusFeedback[index].FireUpdate();
+						}
 
-                    MicBatteryLevelFeedback[index].FireUpdate();
+						MicBatteryLevelFeedback[index].FireUpdate();
 
-                    UpdateAlert(index);
+						UpdateAlert(index);
 
-                    return;
+						return;
+					}
                 }
                 CheckStatusConditions();
             }
             catch (Exception ex)
             {
-                Debug.Console(1, this, "PortGatherReceiver Exception: {0}", ex.Message);
+				Debug.Console(1, this, "PortGatherReceiver Exception: {0}", ex.Message);
                 Debug.Console(2, this, "PortGatherReceiver Stack Trace: {0}", ex.StackTrace);
             }
         }
@@ -543,11 +562,12 @@ namespace epi_mics_shure_ulxd
         private void DoChargerPoll()
         {
             CommunicationCharger.SendText("< GET FW_VER >");
+			//CommunicationCharger.SendText("< GET MODEL >");
 
-            for (var i = 0; i < MicStatus.Count; i++)
-            {
-                CommunicationCharger.SendText(String.Format("< GET {0} TX_AVAILABLE >", i + 1));
-            }
+			for (var i = 0; i < MicStatus.Count; i++)
+			{
+				CommunicationCharger.SendText(String.Format("< GET {0} TX_AVAILABLE >", i + 1));
+			}
         }
 
         private void DoReceiverPoll()
