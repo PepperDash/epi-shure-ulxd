@@ -232,6 +232,9 @@ namespace epi_mics_shure_ulxd
                 var i = item;
                 Debug.Console(2, this, "This Mic's name is {0}", i.Name);
 
+                _micMuted.Add(i.Index,MuteStatus.OFF);
+                _micCharging.Add(i.Index, ChargeStatus.NO);
+
                 MicStatus.Add(i.Index, 0);
                 MicStatusFeedback.Add(i.Index, new IntFeedback(() => MicStatus[i.Index]));
 
@@ -288,7 +291,7 @@ namespace epi_mics_shure_ulxd
 
                     ReceiverFirmware = firmware.TrimStart('{').TrimEnd('}');
 
-                    Debug.Console(1, this, "Receiver Firmware: {0}", ReceiverFirmware);
+                    Debug.Console(2, this, "Receiver Firmware: {0}", ReceiverFirmware);
 
                     return;
                 }
@@ -541,6 +544,8 @@ namespace epi_mics_shure_ulxd
                 MicLowBatteryCautionFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.LowBatteryCaution.JoinNumber + offset]);
                 MicOnChargerFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.OnCharger.JoinNumber + offset]);
                 MicLowBatteryWarningFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.LowBatteryWarning.JoinNumber + offset]);
+                trilist.SetBool(myJoinMap.OnChargerFbEnable.JoinNumber, i.OnChargerFbEnable);
+
             }
 
             trilist.OnlineStatusChange += (d, args) =>
@@ -554,6 +559,12 @@ namespace epi_mics_shure_ulxd
                 foreach (var item in MicEnableFeedback)
                 {
                     item.Value.FireUpdate();
+                }
+
+                foreach (var item in _props.Mics)
+                {
+                    var i = item;
+                    trilist.SetBool(myJoinMap.OnChargerFbEnable.JoinNumber, i.OnChargerFbEnable);
                 }
             };
 

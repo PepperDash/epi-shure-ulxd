@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using PepperDash.Essentials.Core;
 
@@ -33,6 +34,9 @@ namespace epi_mics_shure_ulxd
 
         [JsonProperty("name")]
         public string Name { get; set; }
+
+        [JsonProperty("onChargerFbEnable")]
+        public Boolean OnChargerFbEnable { get; set; }
     }
 
 }

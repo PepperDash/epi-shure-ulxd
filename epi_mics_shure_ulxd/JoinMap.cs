@@ -59,6 +59,16 @@ namespace epi_mics_shure_ulxd
                 JoinType = eJoinType.Digital
             });
 
+        [JoinName("OnChargerFbEnable")]
+        public JoinDataComplete OnChargerFbEnable =
+            new JoinDataComplete(new JoinData { JoinNumber = 6, JoinSpan = 1 },
+            new JoinMetadata
+            {
+                Description = "Show Mic On Charger Fb",
+                JoinCapabilities = eJoinCapabilities.ToSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
         [JoinName("LocalStatus")]
         public JoinDataComplete LocalStatus =
             new JoinDataComplete(new JoinData { JoinNumber = 2, JoinSpan = 1 },
