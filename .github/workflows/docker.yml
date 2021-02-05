@@ -67,8 +67,12 @@ jobs:
       - name: Zip Build Output
         shell: powershell
         run: ./.github/scripts/ZipBuildOutput.ps1
-      - name: Write Version
-        run: Write-Output "$($Env:VERSION)" | Out-File -FilePath "$($Env:GITHUB_HOME)\output\version.txt"
+      # Upload output files
+      - name: Upload Build Output
+        uses: actions/upload-artifact@v1
+        with:
+          name: Build
+          path: ./${{ env.SOLUTION_FILE}}-${{ env.VERSION}}.zip
       # Create the release on the source repo
       - name: Create Release
         id: create_release
