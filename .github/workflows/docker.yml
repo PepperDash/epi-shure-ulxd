@@ -24,7 +24,7 @@ jobs:
   Build_Project:
     runs-on: windows-latest
     outputs:
-      versionNumber: ${{steps.setVersionNumber.outputs.version}}
+      version: ${{steps.setVersionNumber.outputs.version}}
     steps:
       # First we checkout the source repo
       - name: Checkout repo
