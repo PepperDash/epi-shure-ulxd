@@ -23,6 +23,8 @@ env:
 jobs:
   Build_Project:
     runs-on: windows-latest
+    outputs:
+      versionNumber: ${{steps.setVersionNumber.outputs.version}}
     steps:
       # First we checkout the source repo
       - name: Checkout repo
@@ -36,10 +38,12 @@ jobs:
         run: git fetch --tags
       # Generate the appropriate version number
       - name: Set Version Number
+        id: setVersionNumber
         shell: powershell
         run: |
           $version = ./.github/scripts/GenerateVersionNumber.ps1
-          Write-Output "::set-env name=VERSION::$version"
+          echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "::set-output name=version::$version"
       # Use the version number to set the version of the assemblies
       - name: Update AssemblyInfo.cs
         shell: powershell
@@ -133,6 +137,6 @@ jobs:
       - name: Add Github Packages source
         run: nuget sources add -name github -source https://nuget.pkg.github.com/pepperdash-engineering/index.json -username Pepperdash -password ${{ secrets.GITHUB_TOKEN }}
       - name: Create nuget package
-        run: nuget pack "./epi_mics_shure_ulxd.nuspec" -version ${{ env.VERSION }}
+        run: nuget pack "./epi_mics_shure_ulxd.nuspec" -version ${{ needs.Build_project.outputs.version }}
       - name: Publish nuget package to Github registry
         run: nuget push **/*.nupkg -source github
