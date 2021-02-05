@@ -113,7 +113,7 @@ jobs:
         shell: powershell
         run: |
           Get-ChildItem "./Version"
-          $version = ${{ needs.Build_Project.outputs.version }}
+          $version = "${{ needs.Build_Project.outputs.version }}"
           Write-Host "Version: $version"
           echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Remove-Item -Path ./Version/version.txt
