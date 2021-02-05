@@ -532,7 +532,7 @@ namespace epi_mics_shure_ulxd
                 var i = item;
                 var index = i.Index;
 
-                var offset = (uint) ((index - 1)*4);
+                var offset = (uint) ((index - 1)*5);
 
                 Debug.Console(2, this, "Mic Channel {0} Connect", i.Index);
 
