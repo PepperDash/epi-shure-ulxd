@@ -32,6 +32,7 @@ jobs:
           token: ${{ secrets.PLUGIN_ACTION_TOKEN }}
       # Generate the appropriate version number
       - name: Set Version Number
+        id: setVersionNumber
         shell: powershell
         env:
           TAG_NAME: ${{ github.event.release.tag_name }}
