@@ -40,6 +40,9 @@ namespace epi_mics_shure_ulxd
         public Dictionary<int, BoolFeedback> MicOnChargerFeedback;
         public Dictionary<int, bool> MicOnCharger;
 
+		public Dictionary<int, BoolFeedback> MicOnChargerFeedbackEnable;
+		public Dictionary<int, bool> MicOnChargerEnable;
+
         public Dictionary<int, StringFeedback> MicNamesFeedback;
         public Dictionary<int, string> MicNames;
 
@@ -231,7 +234,7 @@ namespace epi_mics_shure_ulxd
             {
                 var i = item;
                 Debug.Console(2, this, "This Mic's name is {0}", i.Name);
-
+				
                 _micMuted.Add(i.Index,MuteStatus.OFF);
                 _micCharging.Add(i.Index, ChargeStatus.NO);
 
@@ -266,8 +269,6 @@ namespace epi_mics_shure_ulxd
             CommunicationMonitorCharger.Start();
             CommunicationMonitorReceiver.Start();
         }
-
-
 
 
         void PortGatherReceiver_LineReceived(object sender, GenericCommMethodReceiveTextArgs e)
@@ -458,7 +459,6 @@ namespace epi_mics_shure_ulxd
             }
         }
 
-
         private void CheckStatusConditions()
         {
             var errorCode = 0;
@@ -544,8 +544,7 @@ namespace epi_mics_shure_ulxd
                 MicLowBatteryCautionFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.LowBatteryCaution.JoinNumber + offset]);
                 MicOnChargerFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.OnCharger.JoinNumber + offset]);
                 MicLowBatteryWarningFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.LowBatteryWarning.JoinNumber + offset]);
-                trilist.SetBool(myJoinMap.OnChargerFbEnable.JoinNumber, i.OnChargerFbEnable);
-
+				trilist.SetBool(myJoinMap.OnChargerFbEnable.JoinNumber + offset, i.OnChargerFbEnable);
             }
 
             trilist.OnlineStatusChange += (d, args) =>
@@ -560,12 +559,16 @@ namespace epi_mics_shure_ulxd
                 {
                     item.Value.FireUpdate();
                 }
-
+				
                 foreach (var item in _props.Mics)
                 {
-                    var i = item;
-                    trilist.SetBool(myJoinMap.OnChargerFbEnable.JoinNumber, i.OnChargerFbEnable);
+					var i = item;
+					var index = i.Index;
+
+					var offset = (uint)((index - 1) * 5);
+					trilist.SetBool(myJoinMap.OnChargerFbEnable.JoinNumber + offset, i.OnChargerFbEnable);					
                 }
+				 
             };
 
         }
