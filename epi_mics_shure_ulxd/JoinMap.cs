@@ -9,12 +9,22 @@ namespace epi_mics_shure_ulxd
             
         }
 
-        [JoinName("IsOnline")]
-        public JoinDataComplete IsOnline =
+        [JoinName("ReceiverIsOnline")]
+        public JoinDataComplete ReceiverIsOnline =
             new JoinDataComplete(new JoinData { JoinNumber = 1, JoinSpan = 1 },
             new JoinMetadata
             {
-                Description = "Device Online",
+                Description = "Receiver Device Online",
+                JoinCapabilities = eJoinCapabilities.ToSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
+        [JoinName("ChargerIsOnline")]
+        public JoinDataComplete ChargerIsOnline =
+            new JoinDataComplete(new JoinData { JoinNumber = 50, JoinSpan = 1 },
+            new JoinMetadata
+            {
+                Description = "Charger Device Online",
                 JoinCapabilities = eJoinCapabilities.ToSIMPL,
                 JoinType = eJoinType.Digital
             });

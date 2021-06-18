@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Crestron.SimplSharp;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
 using System.Text.RegularExpressions;
@@ -61,14 +60,11 @@ namespace epi_mics_shure_ulxd
             }
         }
 
-        public bool IsOnline
-        {
-            get { return CommunicationCharger.IsConnected && CommunicationReceiver.IsConnected; }
-        }
 
         public StringFeedback ErrorFeedback;
 
-        public BoolFeedback OnlineFeedback;
+        public BoolFeedback ReceiverOnlineFeedback;
+        public BoolFeedback ChargerOnlineFeedback;
 
         public IBasicCommunication CommunicationReceiver { get; private set; }
         public CommunicationGather PortGatherReceiver { get; private set; }
@@ -135,7 +131,9 @@ namespace epi_mics_shure_ulxd
             var socketReceiver = commReceiver as ISocketStatus;
             var socketCharger = commCharger as ISocketStatus;
 
-            OnlineFeedback = new BoolFeedback(() => IsOnline);
+            ReceiverOnlineFeedback = new BoolFeedback(() => CommunicationReceiver.IsConnected);
+            ChargerOnlineFeedback = new BoolFeedback(() => CommunicationCharger.IsConnected);
+
             //Debug.Console(2, this, "Reg1");
             var receiverIp = _props.Control.TcpSshProperties.Address;
             //Debug.Console(2, this, "Reg2");
@@ -330,8 +328,6 @@ namespace epi_mics_shure_ulxd
 							case (MuteStatus.ON):
 								MicStatus[index] = (int)(Tx_Status.MUTE);
 								break;
-							default:
-								break;
 						}
 						return;
 					}
@@ -505,12 +501,12 @@ namespace epi_mics_shure_ulxd
 
         internal void socketCharger_ConnectionChange(object sender, GenericSocketStatusChageEventArgs e)
         {
-            OnlineFeedback.FireUpdate();
+            ChargerOnlineFeedback.FireUpdate();
         }
 
         internal void socketReceiver_ConnectionChange(object sender, GenericSocketStatusChageEventArgs e)
         {
-            OnlineFeedback.FireUpdate();
+            ReceiverOnlineFeedback.FireUpdate();
         }
 
         public override void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
@@ -524,7 +520,9 @@ namespace epi_mics_shure_ulxd
 
             Debug.Console(1, this, "Linking to Trilist '{0}'", trilist.ID.ToString("X"));
 
-            OnlineFeedback.LinkInputSig(trilist.BooleanInput[myJoinMap.IsOnline.JoinNumber]);
+            ReceiverOnlineFeedback.LinkInputSig(trilist.BooleanInput[myJoinMap.ReceiverIsOnline.JoinNumber]);
+            ChargerOnlineFeedback.LinkInputSig(trilist.BooleanInput[myJoinMap.ChargerIsOnline.JoinNumber]);
+
             ErrorFeedback.LinkInputSig(trilist.StringInput[myJoinMap.ErrorString.JoinNumber]);
 
             foreach (var item in _props.Mics)
