@@ -60,11 +60,17 @@ namespace epi_mics_shure_ulxd
             }
         }
 
+        public int NumberOfChargers { get; private set; }
+
 
         public StringFeedback ErrorFeedback;
 
         public BoolFeedback ReceiverOnlineFeedback;
         public BoolFeedback ChargerOnlineFeedback;
+        public BoolFeedback ChargerOnlineFeedback2;
+        public BoolFeedback Charger2IsPresentFeedback;
+
+        public IntFeedback NumberOfChargersFeedback;
 
         public IBasicCommunication CommunicationReceiver { get; private set; }
         public CommunicationGather PortGatherReceiver { get; private set; }
@@ -73,6 +79,11 @@ namespace epi_mics_shure_ulxd
         public IBasicCommunication CommunicationCharger { get; private set; }
         public CommunicationGather PortGatherCharger { get; private set; }
         public GenericCommunicationMonitor CommunicationMonitorCharger { get; private set; }
+
+        public IBasicCommunication CommunicationCharger2 { get; private set; }
+        public CommunicationGather PortGatherCharger2 { get; private set; }
+        public GenericCommunicationMonitor CommunicationMonitorCharger2 { get; private set; }
+
 
         private long _cautionThreshold;
 
@@ -113,7 +124,7 @@ namespace epi_mics_shure_ulxd
 
 
 
-        public ShureUlxMicDevice(string key, string name, IBasicCommunication commReceiver, IBasicCommunication commCharger,
+        public ShureUlxMicDevice(string key, string name, IBasicCommunication commReceiver, IBasicCommunication commCharger, IBasicCommunication commCharger2,
             ShureUlxMicDeviceProperties props) :
                 base(key, name)
         {
@@ -134,33 +145,33 @@ namespace epi_mics_shure_ulxd
             ReceiverOnlineFeedback = new BoolFeedback(() => CommunicationReceiver.IsConnected);
             ChargerOnlineFeedback = new BoolFeedback(() => CommunicationCharger.IsConnected);
 
+            NumberOfChargersFeedback = new IntFeedback(() => NumberOfChargers);
+
             //Debug.Console(2, this, "Reg1");
             var receiverIp = _props.Control.TcpSshProperties.Address;
             //Debug.Console(2, this, "Reg2");
 
-            var chargerIp = _props.ControlChargerBase.TcpSshProperties.Address;
-           // Debug.Console(2, this, "Reg3");
+            NumberOfChargers = 1;
 
 
-            var concactIp = String.Format("{0} , {1}", receiverIp, chargerIp);
-            //Debug.Console(2, this, "Reg4");
+
 
             const string pattern = @"^[a-zA-Z'.\s]";
             //Debug.Console(2, this, "Reg5");
 
             var rgx = new Regex(pattern);
 
-            if (rgx.IsMatch(concactIp.Split(',')[0]))
+            if (rgx.IsMatch(receiverIp))
             {
                 Debug.Console(2, this, "RegexMatch");
 
-                DeviceInfo.HostName = concactIp;
+                DeviceInfo.HostName = receiverIp;
             }
             else
             {
                 Debug.Console(2, this, "RegexNoMatch");
 
-                DeviceInfo.IpAddress = concactIp;
+                DeviceInfo.IpAddress = receiverIp;
             }
 
 
@@ -168,7 +179,6 @@ namespace epi_mics_shure_ulxd
 
             if (socketReceiver != null) socketReceiver.ConnectionChange += socketReceiver_ConnectionChange;
             
-
             if (socketCharger != null) socketCharger.ConnectionChange += socketCharger_ConnectionChange;
            
 
@@ -189,8 +199,20 @@ namespace epi_mics_shure_ulxd
            
 
             CommunicationMonitorReceiver = new GenericCommunicationMonitor(this, CommunicationReceiver, 30000, 180000, 300000, DoReceiverPoll);
-          
 
+            if (commCharger2 != null)
+            {
+                Debug.Console(1, this, "Two Chargers Present");
+                CommunicationCharger2 = commCharger2;
+                NumberOfChargers = 2;
+                var socketCharger2 = commCharger2 as ISocketStatus;
+                ChargerOnlineFeedback2 = new BoolFeedback(() => CommunicationCharger2.IsConnected);
+                if (socketCharger2 != null) socketCharger2.ConnectionChange += socketCharger2_ConnectionChange;
+                PortGatherCharger2 = new CommunicationGather(CommunicationCharger2, ">");
+                PortGatherCharger2.LineReceived += PortGatherCharger2_LineReceived;
+                CommunicationMonitorCharger2 = new GenericCommunicationMonitor(this, CommunicationCharger2, 30000, 180000, 300000, DoCharger2Poll);
+
+            }          
 
             Init();
 
@@ -227,6 +249,8 @@ namespace epi_mics_shure_ulxd
 
             _micMuted = new Dictionary<int, MuteStatus>();
             _micCharging = new Dictionary<int, ChargeStatus>();
+
+            Charger2IsPresentFeedback = new BoolFeedback(() => NumberOfChargers > 1);
 
             foreach (var item in _props.Mics)
             {
@@ -266,6 +290,12 @@ namespace epi_mics_shure_ulxd
             CommunicationReceiver.Connect();
             CommunicationMonitorCharger.Start();
             CommunicationMonitorReceiver.Start();
+
+            if (CommunicationMonitorCharger2 == null) return;
+            CommunicationCharger2.Connect();
+            CommunicationMonitorCharger2.Start();
+
+
         }
 
 
@@ -411,6 +441,55 @@ namespace epi_mics_shure_ulxd
             }
         }
 
+        void PortGatherCharger2_LineReceived(object sender, GenericCommMethodReceiveTextArgs e)
+        {
+            try
+            {
+                var data = e.Text;
+
+                if (!data.Contains("REP") || data.Contains("ERR"))
+                {
+                    return;
+                }
+
+                var dataChunks = data.Split(' ');
+
+                if (data.Contains("FW_VER"))
+                {
+                    var firmware = dataChunks[3];
+
+                    ReceiverFirmware = firmware.TrimStart('{').TrimEnd('}');
+
+                    return;
+                }
+
+                var index = int.Parse(dataChunks[2]) + 2;
+                var attribute = dataChunks[3];
+
+                if (attribute.Contains("TX_AVAILABLE"))
+                {
+
+                    var status = (ChargeStatus)Enum.Parse(typeof(ChargeStatus), dataChunks[4], true);
+                    _micCharging[index] = status;
+
+                    if (status == ChargeStatus.YES) MicStatus[index] = (int)Tx_Status.ON_CHARGER;
+                    MicOnCharger[index] = MicStatus[index] == (int)Tx_Status.ON_CHARGER;
+                    MicOnChargerFeedback[index].FireUpdate();
+
+                    UpdateAlert(index);
+                }
+
+                CheckStatusConditions();
+            }
+
+            catch (Exception ex)
+            {
+                Debug.Console(1, this, "PortGatherCharger Exception: {0}", ex.Message);
+                Debug.Console(2, this, "PortGatherCharger Stack Trace: {0}", ex.StackTrace);
+            }
+        }
+
+
         private void UpdateAlert(int data)
         {
             if (MicStatus[data] == (int)Tx_Status.ON_CHARGER)
@@ -447,12 +526,10 @@ namespace epi_mics_shure_ulxd
             MicLowBatteryWarningFeedback[data].FireUpdate();
             MicLowBatteryStatusFeedback[data].FireUpdate();
             MicNamesFeedback[data].FireUpdate();
-            if (!String.IsNullOrEmpty(ReceiverFirmware) && !String.IsNullOrEmpty(ChargerFirmware))
-            {
-                DeviceInfo.FirmwareVersion = ConcactFirmware;
+            if (String.IsNullOrEmpty(ReceiverFirmware) || String.IsNullOrEmpty(ChargerFirmware)) return;
+            DeviceInfo.FirmwareVersion = ConcactFirmware;
 
-                UpdateDeviceInfo();
-            }
+            UpdateDeviceInfo();
         }
 
         private void CheckStatusConditions()
@@ -503,6 +580,10 @@ namespace epi_mics_shure_ulxd
         {
             ChargerOnlineFeedback.FireUpdate();
         }
+        internal void socketCharger2_ConnectionChange(object sender, GenericSocketStatusChageEventArgs e)
+        {
+            ChargerOnlineFeedback2.FireUpdate();
+        }
 
         internal void socketReceiver_ConnectionChange(object sender, GenericSocketStatusChageEventArgs e)
         {
@@ -522,6 +603,11 @@ namespace epi_mics_shure_ulxd
 
             ReceiverOnlineFeedback.LinkInputSig(trilist.BooleanInput[myJoinMap.ReceiverIsOnline.JoinNumber]);
             ChargerOnlineFeedback.LinkInputSig(trilist.BooleanInput[myJoinMap.ChargerIsOnline.JoinNumber]);
+            Charger2IsPresentFeedback.LinkInputSig(trilist.BooleanInput[myJoinMap.Charger2IsPresent.JoinNumber]);
+            if(ChargerOnlineFeedback2 != null)
+                ChargerOnlineFeedback2.LinkInputSig(trilist.BooleanInput[myJoinMap.Charger2IsOnline.JoinNumber]);
+
+            NumberOfChargersFeedback.LinkInputSig(trilist.UShortInput[myJoinMap.NumberOfChargers.JoinNumber]);
 
             ErrorFeedback.LinkInputSig(trilist.StringInput[myJoinMap.ErrorString.JoinNumber]);
 
@@ -566,7 +652,9 @@ namespace epi_mics_shure_ulxd
 					var offset = (uint)((index - 1) * 5);
 					trilist.SetBool(myJoinMap.OnChargerFbEnable.JoinNumber + offset, i.OnChargerFbEnable);					
                 }
-				 
+                NumberOfChargersFeedback.FireUpdate();
+                Charger2IsPresentFeedback.FireUpdate();
+
             };
 
         }
@@ -576,10 +664,29 @@ namespace epi_mics_shure_ulxd
             CommunicationCharger.SendText("< GET FW_VER >");
 			//CommunicationCharger.SendText("< GET MODEL >");
 
-			for (var i = 0; i < MicStatus.Count; i++)
-			{
-				CommunicationCharger.SendText(String.Format("< GET {0} TX_AVAILABLE >", i + 1));
-			}
+            if (CommunicationCharger2 == null)
+            {
+                for (var i = 0; i < MicStatus.Count; i++)
+                {
+                    CommunicationCharger.SendText(String.Format("< GET {0} TX_AVAILABLE >", i + 1));
+                }
+                return;
+            }
+            for (var i = 0; i < 2; i++)
+            {
+                CommunicationCharger.SendText(String.Format("< GET {0} TX_AVAILABLE >", i + 1));
+            }
+        }
+
+        private void DoCharger2Poll()
+        {
+            CommunicationCharger2.SendText("< GET FW_VER >");
+            //CommunicationCharger.SendText("< GET MODEL >");
+
+            for (var i = 0; i < 2; i++)
+            {
+                CommunicationCharger.SendText(String.Format("< GET {0} TX_AVAILABLE >", i + 1));
+            }
         }
 
         private void DoReceiverPoll()

@@ -33,19 +33,41 @@ namespace epi_mics_shure_ulxd
 
             var c = propertiesConfig.ControlChargerBase.TcpSshProperties;
 
+            var c2 = propertiesConfig.ControlChargerBase2 == null
+                ? null
+                : propertiesConfig.ControlChargerBase2.TcpSshProperties;
+
             var commReceiver = CommFactory.CreateCommForDevice(dc);
 
             var chargerKey = String.Format("{0}-{1}", dc.Key, "ChargerBase");
+
+            var chargerKey2 = String.Format("{0}-{1}", dc.Key, "ChargerBase2");
 
             var chargerSocket = new GenericTcpIpClient(chargerKey + "-tcp", c.Address, c.Port, c.BufferSize)
             {
                 AutoReconnect = c.AutoReconnect,
                 AutoReconnectIntervalMs = c.AutoReconnect ? c.AutoReconnectIntervalMs : 0
             };
-
+            
             DeviceManager.AddDevice(chargerSocket);
 
-            return new ShureUlxMicDevice(dc.Key, dc.Name, commReceiver, chargerSocket, propertiesConfig);
+
+            var chargerSocket2 = c2 == null ? 
+                null  
+                : new GenericTcpIpClient(chargerKey2 + "-tcp", c2.Address, c2.Port, c2.BufferSize)
+            {
+                AutoReconnect = c2.AutoReconnect,
+                AutoReconnectIntervalMs = c2.AutoReconnect ? c2.AutoReconnectIntervalMs : 5000
+            };
+
+            if (c2 != null)
+            {
+                Debug.Console(1, "Adding {0}!!", chargerKey2);
+                DeviceManager.AddDevice(chargerSocket2);
+            }
+
+
+            return new ShureUlxMicDevice(dc.Key, dc.Name, commReceiver, chargerSocket, chargerSocket2, propertiesConfig);
         }
 
     }

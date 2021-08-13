@@ -14,6 +14,10 @@ namespace epi_mics_shure_ulxd
         [JsonProperty("controlChargerBase")]
         public EssentialsControlPropertiesConfig ControlChargerBase { get; set; }
 
+        [JsonProperty("controlChargerBase2")]
+        public EssentialsControlPropertiesConfig ControlChargerBase2 { get; set; }
+
+
         [JsonProperty("mics")]
         public List<Mics> Mics { get; set; }
 
