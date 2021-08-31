@@ -376,6 +376,7 @@ namespace epi_mics_shure_ulxd
 							MicStatus[index] = (int)Tx_Status.UNKNOWN;
 							MicStatusFeedback[index].FireUpdate();
 						}
+					    MicStatus[index] = MicStatus[index] == 0 ? (int) Tx_Status.STANDBY : MicStatus[index];
 
 						MicBatteryLevelFeedback[index].FireUpdate();
 
@@ -492,6 +493,7 @@ namespace epi_mics_shure_ulxd
 
         private void UpdateAlert(int data)
         {
+            Debug.Console(2, this, "Tx(({2}))_Status = {0} : Battery Level = {1}", MicStatus[data], (int)MicBatteryLevel[data], data);
             if (MicStatus[data] == (int)Tx_Status.ON_CHARGER)
             {
                 MicLowBatteryCaution[data] = false;
@@ -520,6 +522,13 @@ namespace epi_mics_shure_ulxd
                     MicLowBatteryWarning[data] = false;
                     MicLowBatteryStatus[data] = 0;
                 }
+            }
+
+            if (MicStatus[data] == (int) Tx_Status.UNKNOWN)
+            {
+                MicLowBatteryCaution[data] = false;
+                MicLowBatteryWarning[data] = false;
+                MicLowBatteryStatus[data] = 0;
             }
 
             MicLowBatteryCautionFeedback[data].FireUpdate();
