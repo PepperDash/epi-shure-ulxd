@@ -99,7 +99,8 @@ namespace epi_mics_shure_ulxd
         {
             get
             {
-                return (int)((_cautionThreshold * 65535) / 100);
+                //return (int)((_cautionThreshold * 65535) / 100);
+				return (int)(_cautionThreshold);
             }
             set
             {
@@ -113,7 +114,8 @@ namespace epi_mics_shure_ulxd
         {
             get
             {
-                return (int)((_warningThreshold * 65535) / 100);
+                //return (int)((_warningThreshold * 65535) / 100);
+				return (int)(_warningThreshold);
             }
             set
             {
@@ -380,6 +382,7 @@ namespace epi_mics_shure_ulxd
 
 						MicBatteryLevelFeedback[index].FireUpdate();
 
+						Debug.Console(2, this, "PortGatherReceiver_LineReceived | BATT_CHARGE | Going to UpdateAlert using index:[{0}]", index);
 						UpdateAlert(index);
 
 						return;
@@ -429,6 +432,7 @@ namespace epi_mics_shure_ulxd
                     MicOnCharger[index] = MicStatus[index] == (int) Tx_Status.ON_CHARGER;
                     MicOnChargerFeedback[index].FireUpdate();
 
+					Debug.Console(2, this, "PortGatherCharger_LineReceived | TX_AVAILABLE | Going to UpdateAlert using index:[{0}]", index);
                     UpdateAlert(index);
                 }
 
@@ -477,6 +481,7 @@ namespace epi_mics_shure_ulxd
                     MicOnCharger[index] = MicStatus[index] == (int)Tx_Status.ON_CHARGER;
                     MicOnChargerFeedback[index].FireUpdate();
 
+					Debug.Console(2, this, "PortGatherCharger2_LineReceived | TX_AVAILABLE | Going to UpdateAlert using index:[{0}]", index);
                     UpdateAlert(index);
                 }
 
@@ -493,18 +498,21 @@ namespace epi_mics_shure_ulxd
 
         private void UpdateAlert(int data)
         {
-            Debug.Console(2, this, "Tx(({2}))_Status = {0} : Battery Level = {1}", MicStatus[data], (int)MicBatteryLevel[data], data);
+            Debug.Console(2, this, "UpdateAlert | Tx(({2}))_Status = {0} : Battery Level = {1}", MicStatus[data], (int)MicBatteryLevel[data], data);
             if (MicStatus[data] == (int)Tx_Status.ON_CHARGER)
             {
-                MicLowBatteryCaution[data] = false;
+				Debug.Console(2, this, "UpdateAlert | Tx(({2})) | OnCharger", MicStatus[data], (int)MicBatteryLevel[data], data);
+				MicLowBatteryCaution[data] = false;
                 MicLowBatteryWarning[data] = false;
                 MicLowBatteryStatus[data] = 0; 
             }
 
             else if (MicStatus[data] != (int)Tx_Status.UNKNOWN)
             {
-                if (MicBatteryLevel[data] <= WarningThreshold)
+				Debug.Console(2, this, "UpdateAlert | Tx(({2})) | Status Ready to check", MicStatus[data], (int)MicBatteryLevel[data], data);
+				if (MicBatteryLevel[data] <= WarningThreshold)
                 {
+					Debug.Console(2, this, "UpdateAlert | Tx(({2})) | WarningThreshold Met [{3}]", MicStatus[data], (int)MicBatteryLevel[data], data, WarningThreshold);
                     MicLowBatteryWarning[data] = true;
                     MicLowBatteryCaution[data] = false;
                     MicLowBatteryStatus[data] = 2;
@@ -512,12 +520,14 @@ namespace epi_mics_shure_ulxd
                 }
                 else if (MicBatteryLevel[data] <= CautionThreshold)
                 {
+					Debug.Console(2, this, "UpdateAlert | Tx(({2})) | CuationThreshold Met [{3}]", MicStatus[data], (int)MicBatteryLevel[data], data, CautionThreshold);
                     MicLowBatteryWarning[data] = false;
                     MicLowBatteryCaution[data] = true;
                     MicLowBatteryStatus[data] = 1;
                 }
                 else
                 {
+					Debug.Console(2, this, "UpdateAlert | Tx(({2})) | OK", MicStatus[data], (int)MicBatteryLevel[data], data);
                     MicLowBatteryCaution[data] = false;
                     MicLowBatteryWarning[data] = false;
                     MicLowBatteryStatus[data] = 0;
@@ -526,6 +536,7 @@ namespace epi_mics_shure_ulxd
 
             if (MicStatus[data] == (int) Tx_Status.UNKNOWN)
             {
+				Debug.Console(2, this, "UpdateAlert | Tx(({2})) | Status Unknown", MicStatus[data], (int)MicBatteryLevel[data], data);
                 MicLowBatteryCaution[data] = false;
                 MicLowBatteryWarning[data] = false;
                 MicLowBatteryStatus[data] = 0;
