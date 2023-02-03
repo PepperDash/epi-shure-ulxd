@@ -9,15 +9,56 @@ namespace epi_mics_shure_ulxd
             
         }
 
-        [JoinName("IsOnline")]
-        public JoinDataComplete IsOnline =
+        [JoinName("ReceiverIsOnline")]
+        public JoinDataComplete ReceiverIsOnline =
             new JoinDataComplete(new JoinData { JoinNumber = 1, JoinSpan = 1 },
             new JoinMetadata
             {
-                Description = "Device Online",
+                Description = "Receiver Device Online",
                 JoinCapabilities = eJoinCapabilities.ToSIMPL,
                 JoinType = eJoinType.Digital
             });
+
+        [JoinName("ChargerIsOnline")]
+        public JoinDataComplete ChargerIsOnline =
+            new JoinDataComplete(new JoinData { JoinNumber = 49, JoinSpan = 1 },
+            new JoinMetadata
+            {
+                Description = "Charger Device Online",
+                JoinCapabilities = eJoinCapabilities.ToSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
+        [JoinName("Charger2IsPresent")]
+        public JoinDataComplete Charger2IsPresent =
+            new JoinDataComplete(new JoinData { JoinNumber = 48, JoinSpan = 1 },
+            new JoinMetadata
+            {
+                Description = "Charger2 Device Present",
+                JoinCapabilities = eJoinCapabilities.ToSIMPL,
+                JoinType = eJoinType.Digital
+            });
+        [JoinName("Charger2IsOnline")]
+        public JoinDataComplete Charger2IsOnline =
+            new JoinDataComplete(new JoinData { JoinNumber = 50, JoinSpan = 1 },
+            new JoinMetadata
+            {
+                Description = "Charger2 Device Online",
+                JoinCapabilities = eJoinCapabilities.ToSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
+        [JoinName("NumberOfChargers")]
+        public JoinDataComplete NumberOfChargers =
+            new JoinDataComplete(new JoinData { JoinNumber = 50, JoinSpan = 1 },
+            new JoinMetadata
+            {
+                Description = "Number Of Chargers",
+                JoinCapabilities = eJoinCapabilities.ToSIMPL,
+                JoinType = eJoinType.Analog
+            });
+
+
 
         [JoinName("Enabled")]
         public JoinDataComplete Enabled =
