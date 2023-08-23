@@ -120,12 +120,22 @@ namespace epi_mics_shure_ulxd
                 JoinType = eJoinType.Analog
             });
 
-        [JoinName("BatteryLevel")]
-        public JoinDataComplete BatteryLevel =
+        [JoinName("BatteryLevelPercentage")]
+        public JoinDataComplete BatteryLevelPercentage =
             new JoinDataComplete(new JoinData { JoinNumber = 3, JoinSpan = 1 },
             new JoinMetadata
             {
-                Description = "Mic Battery level",
+                Description = "Mic Battery level 0-100%",
+                JoinCapabilities = eJoinCapabilities.ToSIMPL,
+                JoinType = eJoinType.Analog
+            });
+
+        [JoinName("BatteryLevelRaw")]
+        public JoinDataComplete BatteryLevelRaw =
+            new JoinDataComplete(new JoinData { JoinNumber = 5, JoinSpan = 1 },
+            new JoinMetadata
+            {
+                Description = "Mic Battery level 0-65535",
                 JoinCapabilities = eJoinCapabilities.ToSIMPL,
                 JoinType = eJoinType.Analog
             });

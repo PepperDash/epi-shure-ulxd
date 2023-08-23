@@ -24,8 +24,11 @@ namespace epi_mics_shure_ulxd
         public Dictionary<int, IntFeedback> MicStatusFeedback;
         public Dictionary<int, int> MicStatus;
 
-        public Dictionary<int, IntFeedback> MicBatteryLevelFeedback;
-        public Dictionary<int, int> MicBatteryLevel;
+        public Dictionary<int, IntFeedback> MicBatteryLevelPercentageFeedback;
+        public Dictionary<int, int> MicBatteryLevelPercentage;
+
+        public Dictionary<int, IntFeedback> MicBatteryLevelRawFeedback;
+        public Dictionary<int, int> MicBatteryLevelRaw;
 
         public Dictionary<int, BoolFeedback> MicLowBatteryCautionFeedback;
         public Dictionary<int, bool> MicLowBatteryCaution;
@@ -229,8 +232,11 @@ namespace epi_mics_shure_ulxd
             MicStatus = new Dictionary<int, int>();
             MicStatusFeedback = new Dictionary<int, IntFeedback>();
 
-            MicBatteryLevel = new Dictionary<int, int>();
-            MicBatteryLevelFeedback = new Dictionary<int, IntFeedback>();
+            MicBatteryLevelPercentage = new Dictionary<int, int>();
+            MicBatteryLevelPercentageFeedback = new Dictionary<int, IntFeedback>();
+
+            MicBatteryLevelRaw = new Dictionary<int, int>();
+            MicBatteryLevelRawFeedback = new Dictionary<int, IntFeedback>();
 
             MicLowBatteryCaution = new Dictionary<int, bool>();
             MicLowBatteryCautionFeedback = new Dictionary<int, BoolFeedback>();
@@ -265,8 +271,11 @@ namespace epi_mics_shure_ulxd
                 MicStatus.Add(i.Index, 0);
                 MicStatusFeedback.Add(i.Index, new IntFeedback(() => MicStatus[i.Index]));
 
-                MicBatteryLevel.Add(i.Index, 0);
-                MicBatteryLevelFeedback.Add(i.Index, new IntFeedback(() => MicBatteryLevel[i.Index]));
+                MicBatteryLevelPercentage.Add(i.Index, 0);
+                MicBatteryLevelPercentageFeedback.Add(i.Index, new IntFeedback(() => MicBatteryLevelPercentage[i.Index]));
+
+                MicBatteryLevelRaw.Add(i.Index, 0);
+                MicBatteryLevelRawFeedback.Add(i.Index, new IntFeedback(() => MicBatteryLevelRaw[i.Index]));
 
                 MicLowBatteryCaution.Add(i.Index, false);
                 MicLowBatteryCautionFeedback.Add(i.Index, new BoolFeedback(() => MicLowBatteryCaution[i.Index]));
@@ -287,7 +296,10 @@ namespace epi_mics_shure_ulxd
                 MicEnableFeedback.Add(i.Index, new BoolFeedback(() => MicEnable[i.Index]));
 
             }
+        }
 
+        public override void Initialize()
+        {
             CommunicationCharger.Connect();
             CommunicationReceiver.Connect();
             CommunicationMonitorCharger.Start();
@@ -296,8 +308,6 @@ namespace epi_mics_shure_ulxd
             if (CommunicationMonitorCharger2 == null) return;
             CommunicationCharger2.Connect();
             CommunicationMonitorCharger2.Start();
-
-
         }
 
 
@@ -371,7 +381,8 @@ namespace epi_mics_shure_ulxd
 
 					if (MicEnable[index])
 					{
-						MicBatteryLevel[index] = battCharge;
+						MicBatteryLevelPercentage[index] = battCharge;
+                        MicBatteryLevelRaw[index] = (int)((long.Parse(dataChunks[4]) * 65535) / 100);
 
 						if (battCharge == 255)
 						{
@@ -380,7 +391,8 @@ namespace epi_mics_shure_ulxd
 						}
 					    MicStatus[index] = MicStatus[index] == 0 ? (int) Tx_Status.STANDBY : MicStatus[index];
 
-						MicBatteryLevelFeedback[index].FireUpdate();
+						MicBatteryLevelPercentageFeedback[index].FireUpdate();
+                        MicBatteryLevelRawFeedback[index].FireUpdate();
 
 						Debug.Console(2, this, "PortGatherReceiver_LineReceived | BATT_CHARGE | Going to UpdateAlert using index:[{0}]", index);
 						UpdateAlert(index);
@@ -498,10 +510,10 @@ namespace epi_mics_shure_ulxd
 
         private void UpdateAlert(int data)
         {
-            Debug.Console(2, this, "UpdateAlert | Tx(({2}))_Status = {0} : Battery Level = {1}", MicStatus[data], (int)MicBatteryLevel[data], data);
+            Debug.Console(2, this, "UpdateAlert | Tx(({2}))_Status = {0} : Battery Level = {1}", MicStatus[data], (int)MicBatteryLevelPercentage[data], data);
             if (MicStatus[data] == (int)Tx_Status.ON_CHARGER)
             {
-				Debug.Console(2, this, "UpdateAlert | Tx(({2})) | OnCharger", MicStatus[data], (int)MicBatteryLevel[data], data);
+				Debug.Console(2, this, "UpdateAlert | Tx(({2})) | OnCharger", MicStatus[data], (int)MicBatteryLevelPercentage[data], data);
 				MicLowBatteryCaution[data] = false;
                 MicLowBatteryWarning[data] = false;
                 MicLowBatteryStatus[data] = 0; 
@@ -509,25 +521,25 @@ namespace epi_mics_shure_ulxd
 
             else if (MicStatus[data] != (int)Tx_Status.UNKNOWN)
             {
-				Debug.Console(2, this, "UpdateAlert | Tx(({2})) | Status Ready to check", MicStatus[data], (int)MicBatteryLevel[data], data);
-				if (MicBatteryLevel[data] <= WarningThreshold)
+				Debug.Console(2, this, "UpdateAlert | Tx(({2})) | Status Ready to check", MicStatus[data], (int)MicBatteryLevelPercentage[data], data);
+				if (MicBatteryLevelPercentage[data] <= WarningThreshold)
                 {
-					Debug.Console(2, this, "UpdateAlert | Tx(({2})) | WarningThreshold Met [{3}]", MicStatus[data], (int)MicBatteryLevel[data], data, WarningThreshold);
+					Debug.Console(2, this, "UpdateAlert | Tx(({2})) | WarningThreshold Met [{3}]", MicStatus[data], (int)MicBatteryLevelPercentage[data], data, WarningThreshold);
                     MicLowBatteryWarning[data] = true;
                     MicLowBatteryCaution[data] = false;
                     MicLowBatteryStatus[data] = 2;
 
                 }
-                else if (MicBatteryLevel[data] <= CautionThreshold)
+                else if (MicBatteryLevelPercentage[data] <= CautionThreshold)
                 {
-					Debug.Console(2, this, "UpdateAlert | Tx(({2})) | CuationThreshold Met [{3}]", MicStatus[data], (int)MicBatteryLevel[data], data, CautionThreshold);
+					Debug.Console(2, this, "UpdateAlert | Tx(({2})) | CuationThreshold Met [{3}]", MicStatus[data], (int)MicBatteryLevelPercentage[data], data, CautionThreshold);
                     MicLowBatteryWarning[data] = false;
                     MicLowBatteryCaution[data] = true;
                     MicLowBatteryStatus[data] = 1;
                 }
                 else
                 {
-					Debug.Console(2, this, "UpdateAlert | Tx(({2})) | OK", MicStatus[data], (int)MicBatteryLevel[data], data);
+					Debug.Console(2, this, "UpdateAlert | Tx(({2})) | OK", MicStatus[data], (int)MicBatteryLevelPercentage[data], data);
                     MicLowBatteryCaution[data] = false;
                     MicLowBatteryWarning[data] = false;
                     MicLowBatteryStatus[data] = 0;
@@ -536,7 +548,7 @@ namespace epi_mics_shure_ulxd
 
             if (MicStatus[data] == (int) Tx_Status.UNKNOWN)
             {
-				Debug.Console(2, this, "UpdateAlert | Tx(({2})) | Status Unknown", MicStatus[data], (int)MicBatteryLevel[data], data);
+				Debug.Console(2, this, "UpdateAlert | Tx(({2})) | Status Unknown", MicStatus[data], (int)MicBatteryLevelPercentage[data], data);
                 MicLowBatteryCaution[data] = false;
                 MicLowBatteryWarning[data] = false;
                 MicLowBatteryStatus[data] = 0;
@@ -642,7 +654,8 @@ namespace epi_mics_shure_ulxd
 
                 MicEnableFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.Enabled.JoinNumber + offset]);
                 MicNamesFeedback[index].LinkInputSig(trilist.StringInput[myJoinMap.Name.JoinNumber + offset]);
-                MicBatteryLevelFeedback[index].LinkInputSig(trilist.UShortInput[myJoinMap.BatteryLevel.JoinNumber + offset]);
+                MicBatteryLevelPercentageFeedback[index].LinkInputSig(trilist.UShortInput[myJoinMap.BatteryLevelPercentage.JoinNumber + offset]);
+                MicBatteryLevelRawFeedback[index].LinkInputSig(trilist.UShortInput[myJoinMap.BatteryLevelRaw.JoinNumber + offset]);
                 MicStatusFeedback[index].LinkInputSig(trilist.UShortInput[myJoinMap.LocalStatus.JoinNumber + offset]);
                 MicLowBatteryStatusFeedback[index].LinkInputSig(trilist.UShortInput[myJoinMap.BatteryStatus.JoinNumber + offset]);
                 MicLowBatteryCautionFeedback[index].LinkInputSig(trilist.BooleanInput[myJoinMap.LowBatteryCaution.JoinNumber + offset]);
