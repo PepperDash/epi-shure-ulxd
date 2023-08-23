@@ -17,7 +17,7 @@ namespace epi_mics_shure_ulxd
         public DeviceFactory()
         {
             // Set the minimum Essentials Framework Version
-            MinimumEssentialsFrameworkVersion = "1.6.7";
+            MinimumEssentialsFrameworkVersion = "1.12.0";
 
             // In the constructor we initialize the list with the typenames that will build an instance of this device
             TypeNames = new List<string>() { "shureulxd", "ulxd", "shure-ulx-d" };
