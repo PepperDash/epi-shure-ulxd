@@ -20,3 +20,59 @@ This repo contains two Github Action workflows that will build this project auto
 Builds on the Master branch will ONLY be triggered by manually creating a release using the web interface in the repository. They will be versioned with the tag that is created when the release is created. The tags MUST take the form `major.minor.revision` to be compatible with the build process. A tag like `v0.1.0-alpha` is NOT compatabile and may result in the build process failing.
 
 If you have any questions about the action, contact Andrew Welker or Neil Dorin.
+<!-- START Minimum Essentials Framework Versions -->
+### Minimum Essentials Framework Versions
+
+- 1.12.0
+<!-- END Minimum Essentials Framework Versions -->
+<!-- START Supported Types -->
+### Supported Types
+
+- shure-ulx-d
+- ulxd
+- shureulxd
+<!-- END Supported Types -->
+<!-- START Join Maps -->
+
+<!-- END Join Maps -->
+<!-- START Interfaces Implemented -->
+### Interfaces Implemented
+
+- IDeviceInfoProvider
+<!-- END Interfaces Implemented -->
+<!-- START Base Classes -->
+### Base Classes
+
+- EssentialsBridgeableDevice
+- JoinMapBaseAdvanced
+<!-- END Base Classes -->
+<!-- START Public Methods -->
+### Public Methods
+
+- public void UpdateDeviceInfo()
+- public void UpdateDeviceInfo()
+<!-- END Public Methods -->
+<!-- START Bool Feedbacks -->
+### Bool Feedbacks
+
+- ReceiverOnlineFeedback
+- ChargerOnlineFeedback
+- ChargerOnlineFeedback2
+- Charger2IsPresentFeedback
+- ReceiverOnlineFeedback
+- ChargerOnlineFeedback
+- ChargerOnlineFeedback2
+- Charger2IsPresentFeedback
+<!-- END Bool Feedbacks -->
+<!-- START Int Feedbacks -->
+### Int Feedbacks
+
+- NumberOfChargersFeedback
+- NumberOfChargersFeedback
+<!-- END Int Feedbacks -->
+<!-- START String Feedbacks -->
+### String Feedbacks
+
+- ErrorFeedback
+- ErrorFeedback
+<!-- END String Feedbacks -->
